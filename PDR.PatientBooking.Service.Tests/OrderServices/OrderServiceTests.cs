@@ -9,6 +9,7 @@ using PDR.PatientBooking.Data;
 using PDR.PatientBooking.Data.Models;
 using PDR.PatientBooking.Service.OrderServices;
 using PDR.PatientBooking.Service.OrderServices.Requests;
+using PDR.PatientBooking.Service.OrderServices.Responses;
 using PDR.PatientBooking.Service.OrderServices.Validation;
 using PDR.PatientBooking.Service.Validation;
 
@@ -159,6 +160,72 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices
                 options => options
                     .Excluding(order => order.Doctor)
                     .Excluding(order => order.Patient));
+        }
+
+        [Test]
+        public void GetPatientNextOrder_NoNonCancelledOrder_ReturnsNull()
+        {
+            //arrange
+            var patientId = _fixture.Create<long>();
+
+            //act
+            var res = _orderService.GetPatientNextOrder(patientId);
+
+            //assert
+            res.Should().BeNull();
+        }
+
+        [Test]
+        public void GetPatientNextOrder_ReturnsNonCancelledOrder()
+        {
+            //arrange
+            var utcNow = DateTime.UtcNow;
+
+            var patient = _fixture
+                .Build<Patient>()
+                .Without(x => x.Orders)
+                .Create();
+
+            var cancelledOrder = _fixture
+                .Build<Order>()
+                .With(x => x.StartTime, utcNow.AddHours(1))
+                .With(x => x.IsCancelled, true)
+                .With(x => x.PatientId, patient.Id)
+                .With(x => x.SurgeryType, (int)patient.Clinic.SurgeryType)
+                .Without(x => x.Doctor)
+                .Without(x => x.Patient)
+                .Create();
+
+            var nonCancelledOrder = _fixture
+                .Build<Order>()
+                .With(x => x.StartTime, utcNow.AddHours(2))
+                .With(x => x.IsCancelled, false)
+                .With(x => x.PatientId, patient.Id)
+                .With(x => x.SurgeryType, (int)patient.Clinic.SurgeryType)
+                .Without(x => x.Doctor)
+                .Without(x => x.Patient)
+                .Create();
+
+            _context.Patient.Add(patient);
+            _context.Order.Add(cancelledOrder);
+            _context.Order.Add(nonCancelledOrder);
+            _context.SaveChanges();
+
+            var expected = new GetOrderResponse
+            {
+                Id = nonCancelledOrder.Id,
+                StartTime = nonCancelledOrder.StartTime,
+                EndTime = nonCancelledOrder.EndTime,
+                DoctorId = nonCancelledOrder.DoctorId,
+                PatientId = nonCancelledOrder.PatientId,
+                SurgeryType = nonCancelledOrder.SurgeryType
+            };
+
+            //act
+            var res = _orderService.GetPatientNextOrder(patient.Id);
+
+            //assert
+            res.Should().BeEquivalentTo(expected);
         }
 
         [TearDown]
