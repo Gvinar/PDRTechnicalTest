@@ -113,7 +113,7 @@ namespace PDR.PatientBooking.Service.Tests.DoctorServices
                 options => options
                     .Excluding(doctor => doctor.Id)
                     .Excluding(doctor => doctor.Created))
-                .And.Match(patients => patients.All(patient => patient.Created > utcNow));
+                .And.Match(doctors => doctors.All(doctor => doctor.Created > utcNow));
         }
 
         [Test]
