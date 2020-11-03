@@ -101,21 +101,20 @@ namespace PDR.PatientBooking.Service.Tests.PatientServices
                 Email = request.Email,
                 DateOfBirth = request.DateOfBirth,
                 Orders = new List<Order>(),
-                ClinicId = request.ClinicId
+                ClinicId = request.ClinicId,
+                Created = DateTime.UtcNow
             };
-
-            var utcNow = DateTime.UtcNow;
 
             //act
             _patientService.AddPatient(request);
 
             //assert
             _context.Patient
-                .Should().ContainEquivalentOf(expected, 
+                .Should().ContainEquivalentOf(expected,
                     options => options
                         .Excluding(patient => patient.Id)
-                        .Excluding(patient => patient.Created))
-                .And.Match(patients => patients.All(patient => patient.Created > utcNow));
+                        .Using<DateTime>(c => c.Subject.Should().BeCloseTo(c.Expectation))
+                        .When(i => i.SelectedMemberPath.Equals(nameof(expected.Created))));
         }
 
         [Test]
