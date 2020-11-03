@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Linq;
 using AutoFixture;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using PDR.PatientBooking.Data;
 using PDR.PatientBooking.Data.Models;
-using PDR.PatientBooking.Service.DoctorServices.Requests;
-using PDR.PatientBooking.Service.DoctorServices.Validation;
+using PDR.PatientBooking.Service.OrderServices.Requests;
+using PDR.PatientBooking.Service.OrderServices.Validation;
 
 namespace PDR.PatientBooking.Service.Tests.OrderServices.Validation
 {
@@ -17,7 +18,7 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices.Validation
 
         private PatientBookingContext _context;
 
-        private AddDoctorRequestValidator _addDoctorRequestValidator;
+        private AddOrderRequestValidator _addOrderRequestValidator;
 
         [SetUp]
         public void SetUp()
@@ -31,18 +32,37 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices.Validation
             // Mock setup
             _context = new PatientBookingContext(new DbContextOptionsBuilder<PatientBookingContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-            // Mock default
-            SetupMockDefaults();
+            // Common DB Data
+            SetupTestData();
 
             // Sut instantiation
-            _addDoctorRequestValidator = new AddDoctorRequestValidator(
+            _addOrderRequestValidator = new AddOrderRequestValidator(
                 _context
             );
         }
 
-        private void SetupMockDefaults()
+        private void SetupTestData()
         {
+            var clinic = _fixture
+                .Build<Clinic>()
+                .Without(x => x.Patients)
+                .Create();
+            _context.Clinic.Add(clinic);
 
+            var patient = _fixture
+                .Build<Patient>()
+                .With(x => x.ClinicId, clinic.Id)
+                .Without(x => x.Clinic)
+                .Create();
+            _context.Patient.Add(patient);
+
+            var doctor = _fixture
+                .Build<Doctor>()
+                .Without(x => x.Orders)
+                .Create();
+            _context.Doctor.Add(doctor);
+
+            _context.SaveChanges();
         }
 
         [Test]
@@ -52,133 +72,109 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices.Validation
             var request = GetValidRequest();
 
             //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
-
-            //assert
-            res.PassedValidation.Should().BeTrue();
-        }
-
-        [TestCase("")]
-        [TestCase(null)]
-        public void ValidateRequest_FirstNameNullOrEmpty_ReturnsFailedValidationResult(string firstName)
-        {
-            //arrange
-            var request = GetValidRequest();
-            request.FirstName = firstName;
-
-            //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
-
-            //assert
-            res.PassedValidation.Should().BeFalse();
-            res.Errors.Should().Contain("FirstName must be populated");
-        }
-
-        [TestCase("")]
-        [TestCase(null)]
-        public void ValidateRequest_LastNameNullOrEmpty_ReturnsFailedValidationResult(string lastName)
-        {
-            //arrange
-            var request = GetValidRequest();
-            request.LastName = lastName;
-
-            //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
-
-            //assert
-            res.PassedValidation.Should().BeFalse();
-            res.Errors.Should().Contain("LastName must be populated");
-        }
-
-        [TestCase("")]
-        [TestCase(null)]
-        public void ValidateRequest_EmailNullOrEmpty_ReturnsFailedValidationResult(string email)
-        {
-            //arrange
-            var request = GetValidRequest();
-            request.Email = email;
-
-            //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
-
-            //assert
-            res.PassedValidation.Should().BeFalse();
-            res.Errors.Should().Contain("Email must be populated");
-        }
-
-        [TestCase("user@")]
-        [TestCase("@")]
-        [TestCase("user")]
-        [TestCase(null)]
-        [TestCase("")]
-        public void ValidateRequest_InvalidEmail_ReturnsFailedValidationResult(string email)
-        {
-            //arrange
-            var request = GetValidRequest();
-            request.Email = email;
-
-            //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
-
-            //assert
-            res.PassedValidation.Should().BeFalse();
-            res.Errors.Should().Contain("Email must be a valid email address");
-        }
-
-        [TestCase("user@domain.com")]
-        [TestCase("user@domain-domain.com")]
-        [TestCase("user@domain.net")]
-        [TestCase("user@1.net")]
-        [TestCase("user@domain.co.uk")]
-        [TestCase("user.name@domain.com")]
-        [TestCase("user.name@domain-domain.com")]
-        [TestCase("user.name@domain.net")]
-        [TestCase("user.name@1.net")]
-        [TestCase("user.name@domain.co.uk")]
-        [TestCase("user+100@domain.com")]
-        [TestCase("user+100@domain-domain.com")]
-        [TestCase("user+100@domain.net")]
-        [TestCase("user+100@1.net")]
-        [TestCase("user+100@domain.co.uk")]
-        public void ValidateRequest_ValidEmail_ReturnsPassedValidationResult(string email)
-        {
-            //arrange
-            var request = GetValidRequest();
-            request.Email = email;
-
-            //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
+            var res = _addOrderRequestValidator.ValidateRequest(request);
 
             //assert
             res.PassedValidation.Should().BeTrue();
         }
 
         [Test]
-        public void ValidateRequest_DoctorWithEmailAddressAlreadyExists_ReturnsFailedValidationResult()
+        public void ValidateRequest_StartTimeLessThanNow_ReturnsFailedValidationResult()
         {
             //arrange
             var request = GetValidRequest();
-
-            var existingDoctor = _fixture
-                .Build<Doctor>()
-                .With(x => x.Email, request.Email)
-                .Create();
-
-            _context.Add(existingDoctor);
-            _context.SaveChanges();
+            request.StartTime = DateTime.UtcNow.Subtract(TimeSpan.FromHours(1));
 
             //act
-            var res = _addDoctorRequestValidator.ValidateRequest(request);
+            var res = _addOrderRequestValidator.ValidateRequest(request);
 
             //assert
             res.PassedValidation.Should().BeFalse();
-            res.Errors.Should().Contain("A doctor with that email address already exists");
+            res.Errors.Should().Contain("StartTime should be greater than current time");
         }
 
-        private AddDoctorRequest GetValidRequest()
+        [Test]
+        public void ValidateRequest_EndTimeLessThanStartTime_ReturnsFailedValidationResult()
         {
-            var request = _fixture.Build<AddDoctorRequest>()
-                .With(x => x.Email, "user@domain.com")
+            //arrange
+            var request = GetValidRequest();
+            request.EndTime = DateTime.UtcNow.Subtract(TimeSpan.FromHours(1));
+
+            //act
+            var res = _addOrderRequestValidator.ValidateRequest(request);
+
+            //assert
+            res.PassedValidation.Should().BeFalse();
+            res.Errors.Should().Contain("EndTime should be greater than StartTime");
+        }
+
+        [Test]
+        public void ValidateRequest_PatientNotFound_ReturnsFailedValidationResult()
+        {
+            //arrange
+            var request = GetValidRequest();
+            request.PatientId = -1;
+
+            //act
+            var res = _addOrderRequestValidator.ValidateRequest(request);
+
+            //assert
+            res.PassedValidation.Should().BeFalse();
+            res.Errors.Should().Contain("A patient with that ID could not be found");
+        }
+
+        [Test]
+        public void ValidateRequest_DoctorNotFound_ReturnsFailedValidationResult()
+        {
+            //arrange
+            var request = GetValidRequest();
+            request.DoctorId = -1;
+
+            //act
+            var res = _addOrderRequestValidator.ValidateRequest(request);
+
+            //assert
+            res.PassedValidation.Should().BeFalse();
+            res.Errors.Should().Contain("A doctor with that ID could not be found");
+        }
+
+        [Test]
+        public void ValidateRequest_DoctorIsScheduled_ReturnsFailedValidationResult()
+        {
+            //arrange
+            var request = GetValidRequest();
+            var order = _fixture
+                .Build<Order>()
+                .With(x => x.StartTime, request.StartTime)
+                .With(x => x.EndTime, request.EndTime)
+                .With(x => x.DoctorId, request.DoctorId)
+                .With(x => x.IsCancelled, false)
+                .Without(x => x.Doctor)
+                .Without(x => x.Patient)
+                .Create();
+            _context.Order.Add(order);
+            _context.SaveChanges();
+
+            //act
+            var res = _addOrderRequestValidator.ValidateRequest(request);
+
+            //assert
+            res.PassedValidation.Should().BeFalse();
+            res.Errors.Should().Contain("A doctor is already scheduled for this time");
+        }
+
+        private AddOrderRequest GetValidRequest()
+        {
+            var patient = _context.Patient.First();
+            var doctor = _context.Doctor.First();
+            var utcNow = DateTime.UtcNow;
+
+            var request = _fixture
+                .Build<AddOrderRequest>()
+                .With(x => x.DoctorId, doctor.Id)
+                .With(x => x.PatientId, patient.Id)
+                .With(x => x.StartTime, utcNow.AddHours(1))
+                .With(x => x.EndTime, utcNow.AddHours(2))
                 .Create();
             return request;
         }
