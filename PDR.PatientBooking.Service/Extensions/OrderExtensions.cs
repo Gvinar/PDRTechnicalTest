@@ -1,6 +1,6 @@
 ﻿using PDR.PatientBooking.Data.Models;
 
-namespace PDR.PatientBookingApi
+namespace PDR.PatientBooking.Service.Extensions
 {
     public static class OrderExtensions
     {

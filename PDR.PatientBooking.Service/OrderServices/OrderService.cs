@@ -2,8 +2,10 @@
 using System.Linq;
 using PDR.PatientBooking.Data;
 using PDR.PatientBooking.Data.Models;
+using PDR.PatientBooking.Service.Extensions;
 using PDR.PatientBooking.Service.OrderServices.Validation;
 using PDR.PatientBooking.Service.OrderServices.Requests;
+using PDR.PatientBooking.Service.OrderServices.Responses;
 
 namespace PDR.PatientBooking.Service.OrderServices
 {
@@ -27,7 +29,7 @@ namespace PDR.PatientBooking.Service.OrderServices
                 throw new ArgumentException(validationResult.Errors.First());
             }
 
-            var clinic = _context.Patient.FirstOrDefault(x => x.Id == request.PatientId).Clinic;
+            var clinic = _context.Patient.First(x => x.Id == request.PatientId).Clinic;
 
             var newOrder = new Order
             {
@@ -41,6 +43,44 @@ namespace PDR.PatientBooking.Service.OrderServices
 
             _context.Order.Add(newOrder);
 
+            _context.SaveChanges();
+        }
+
+        public GetOrderResponse GetPatientNextOrder(long patientId)
+        {
+            var utcNow = DateTime.UtcNow;
+            var order = _context.Order
+                .Where(x => x.PatientId == patientId 
+                            && x.StartTime > utcNow
+                            && !x.IsCancelled)
+                .OrderBy(x => x.StartTime)
+                .FirstOrDefault();
+
+            if (order is null)
+            {
+                return null;
+            }
+
+            return new GetOrderResponse
+            {
+                Id = order.Id,
+                StartTime = order.StartTime,
+                EndTime = order.EndTime,
+                PatientId = order.PatientId,
+                DoctorId = order.DoctorId,
+                SurgeryType = (int)order.GetSurgeryType()
+            };
+        }
+
+        public void CancelOrder(Guid orderId)
+        {
+            var order = _context.Order.FirstOrDefault(x => x.Id == orderId);
+            if (order is null)
+            {
+                return;
+            }
+
+            order.IsCancelled = true;
             _context.SaveChanges();
         }
     }
