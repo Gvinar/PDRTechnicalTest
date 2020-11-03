@@ -47,17 +47,13 @@ namespace PDR.PatientBookingApi.Controllers
             }
         }
 
-        [HttpDelete("{appointmentId}")]
+        [HttpPost("{appointmentId}/cancel")]
         public IActionResult CancelAppointment(Guid appointmentId)
         {
             try
             {
                 _orderService.CancelOrder(appointmentId);
                 return Ok();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {

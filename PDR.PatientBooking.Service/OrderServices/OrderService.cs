@@ -74,7 +74,7 @@ namespace PDR.PatientBooking.Service.OrderServices
 
         public void CancelOrder(Guid orderId)
         {
-            var order = _context.Order.FirstOrDefault(x => x.Id == orderId);
+            var order = _context.Order.SingleOrDefault(x => x.Id == orderId && !x.IsCancelled);
             if (order is null)
             {
                 return;
