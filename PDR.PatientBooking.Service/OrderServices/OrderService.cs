@@ -2,7 +2,7 @@
 using System.Linq;
 using PDR.PatientBooking.Data;
 using PDR.PatientBooking.Data.Models;
-using PDR.PatientBooking.Service.DoctorServices.Validation;
+using PDR.PatientBooking.Service.OrderServices.Validation;
 using PDR.PatientBooking.Service.OrderServices.Requests;
 
 namespace PDR.PatientBooking.Service.OrderServices
@@ -10,23 +10,22 @@ namespace PDR.PatientBooking.Service.OrderServices
     public class OrderService : IOrderService
     {
         private readonly PatientBookingContext _context;
-        //private readonly IAddOrderRequestValidator _validator;
+        private readonly IAddOrderRequestValidator _validator;
 
-        //public OrderService(PatientBookingContext context, IAddOrderRequestValidator validator)
-        public OrderService(PatientBookingContext context)
+        public OrderService(PatientBookingContext context, IAddOrderRequestValidator validator)
         {
             _context = context;
-            //_validator = validator;
+            _validator = validator;
         }
 
         public void AddOrder(AddOrderRequest request)
         {
-            // var validationResult = _validator.ValidateRequest(request);
-            //
-            // if (!validationResult.PassedValidation)
-            // {
-            //     throw new ArgumentException(validationResult.Errors.First());
-            // }
+            var validationResult = _validator.ValidateRequest(request);
+            
+            if (!validationResult.PassedValidation)
+            {
+                throw new ArgumentException(validationResult.Errors.First());
+            }
 
             var clinic = _context.Patient.FirstOrDefault(x => x.Id == request.PatientId).Clinic;
 
