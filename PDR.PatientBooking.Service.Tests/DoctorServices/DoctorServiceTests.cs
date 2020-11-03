@@ -102,14 +102,18 @@ namespace PDR.PatientBooking.Service.Tests.DoctorServices
                 Orders = new List<Order>()
             };
 
+            var utcNow = DateTime.UtcNow;
+
             //act
             _doctorService.AddDoctor(request);
 
             //assert
-            _context.Doctor.Should().ContainEquivalentOf(expected,
+            _context.Doctor
+                .Should().ContainEquivalentOf(expected,
                 options => options
                     .Excluding(doctor => doctor.Id)
-                    .Excluding(doctor => doctor.Created));
+                    .Excluding(doctor => doctor.Created))
+                .And.Match(patients => patients.All(patient => patient.Created > utcNow));
         }
 
         [Test]
