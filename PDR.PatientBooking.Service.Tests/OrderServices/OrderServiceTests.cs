@@ -132,6 +132,35 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices
                     orders.Any(order => order.SurgeryType == (int)clinic.SurgeryType && !order.IsCancelled));
         }
 
+        [Test]
+        public void CancelOrder_UpdateOrderWithIsCancelled()
+        {
+            //arrange
+            var existingOrder = _fixture.Create<Order>();
+            _context.Order.Add(existingOrder);
+            _context.SaveChanges();
+
+            var expected = new Order
+            {
+                Id = existingOrder.Id,
+                StartTime = existingOrder.StartTime,
+                EndTime = existingOrder.EndTime,
+                PatientId = existingOrder.PatientId,
+                DoctorId = existingOrder.DoctorId,
+                SurgeryType = existingOrder.SurgeryType,
+                IsCancelled = true
+            };
+
+            //act
+            _orderService.CancelOrder(existingOrder.Id);
+
+            //assert
+            _context.Order.Should().ContainEquivalentOf(expected, 
+                options => options
+                    .Excluding(order => order.Doctor)
+                    .Excluding(order => order.Patient));
+        }
+
         [TearDown]
         public void TearDown()
         {
