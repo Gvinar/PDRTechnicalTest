@@ -82,6 +82,7 @@ namespace PDR.PatientBooking.Service.OrderServices.Validation
         private bool DoctorIsAlreadyScheduled(AddOrderRequest request, ref PdrValidationResult result)
         {
             if (_context.Order.Any(x => x.DoctorId == request.DoctorId
+                                        && !x.IsCancelled
                                         && !((request.StartTime < x.StartTime && request.EndTime < x.StartTime) ||
                                              (request.StartTime > x.EndTime && request.EndTime > x.EndTime))))
             {

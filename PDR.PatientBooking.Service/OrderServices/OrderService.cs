@@ -46,11 +46,13 @@ namespace PDR.PatientBooking.Service.OrderServices
             _context.SaveChanges();
         }
 
-        public GetOrderResponse GetPatientNextAppointment(long patientId)
+        public GetOrderResponse GetPatientNextOrder(long patientId)
         {
             var utcNow = DateTime.UtcNow;
             var order = _context.Order
-                .Where(x => x.PatientId == patientId && x.StartTime > utcNow)
+                .Where(x => x.PatientId == patientId 
+                            && x.StartTime > utcNow
+                            && !x.IsCancelled)
                 .OrderBy(x => x.StartTime)
                 .FirstOrDefault();
 
@@ -68,6 +70,18 @@ namespace PDR.PatientBooking.Service.OrderServices
                 DoctorId = order.DoctorId,
                 SurgeryType = (int)order.GetSurgeryType()
             };
+        }
+
+        public void CancelOrder(Guid orderId)
+        {
+            var order = _context.Order.FirstOrDefault(x => x.Id == orderId);
+            if (order is null)
+            {
+                return;
+            }
+
+            order.IsCancelled = true;
+            _context.SaveChanges();
         }
     }
 }

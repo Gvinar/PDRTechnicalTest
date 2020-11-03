@@ -21,13 +21,7 @@ namespace PDR.PatientBookingApi.Controllers
         {
             try
             {
-                var nextAppointment = _orderService.GetPatientNextAppointment(identificationNumber);
-                if (nextAppointment is null)
-                {
-                    return NoContent();
-                }
-
-                return Ok(nextAppointment);
+                return Ok(_orderService.GetPatientNextOrder(identificationNumber));
             }
             catch (Exception ex)
             {
@@ -41,6 +35,24 @@ namespace PDR.PatientBookingApi.Controllers
             try
             {
                 _orderService.AddOrder(newOrder);
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex);
+            }
+        }
+
+        [HttpDelete("{appointmentId}")]
+        public IActionResult CancelAppointment(Guid appointmentId)
+        {
+            try
+            {
+                _orderService.CancelOrder(appointmentId);
                 return Ok();
             }
             catch (ArgumentException ex)

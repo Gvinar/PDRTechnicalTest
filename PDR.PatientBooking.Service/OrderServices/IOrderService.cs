@@ -1,4 +1,5 @@
-﻿using PDR.PatientBooking.Service.OrderServices.Requests;
+﻿using System;
+using PDR.PatientBooking.Service.OrderServices.Requests;
 using PDR.PatientBooking.Service.OrderServices.Responses;
 
 namespace PDR.PatientBooking.Service.OrderServices
@@ -7,6 +8,8 @@ namespace PDR.PatientBooking.Service.OrderServices
     {
         void AddOrder(AddOrderRequest request);
 
-        GetOrderResponse GetPatientNextAppointment(long patientId);
+        GetOrderResponse GetPatientNextOrder(long patientId);
+
+        void CancelOrder(Guid orderId);
     }
 }
