@@ -27,7 +27,7 @@ namespace PDR.PatientBooking.Service.OrderServices
                 throw new ArgumentException(validationResult.Errors.First());
             }
 
-            var clinic = _context.Patient.FirstOrDefault(x => x.Id == request.PatientId).Clinic;
+            var clinic = _context.Patient.First(x => x.Id == request.PatientId).Clinic;
 
             var newOrder = new Order
             {
