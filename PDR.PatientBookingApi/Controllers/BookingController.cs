@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PDR.PatientBooking.Data;
 using System;
 using PDR.PatientBooking.Service.OrderServices;
 using PDR.PatientBooking.Service.OrderServices.Requests;
@@ -10,12 +9,10 @@ namespace PDR.PatientBookingApi.Controllers
     [ApiController]
     public class BookingController : ControllerBase
     {
-        private readonly PatientBookingContext _context;
         private readonly IOrderService _orderService;
 
-        public BookingController(PatientBookingContext context, IOrderService orderService)
+        public BookingController(IOrderService orderService)
         {
-            _context = context;
             _orderService = orderService;
         }
 
