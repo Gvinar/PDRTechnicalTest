@@ -128,7 +128,8 @@ namespace PDR.PatientBooking.Service.Tests.OrderServices
                         .Excluding(order => order.Id)
                         .Excluding(order => order.Doctor)
                         .Excluding(order => order.Patient))
-                .And.Match(orders => orders.Any(order => order.SurgeryType == (int)clinic.SurgeryType));
+                .And.Match(orders => 
+                    orders.Any(order => order.SurgeryType == (int)clinic.SurgeryType && !order.IsCancelled));
         }
 
         [TearDown]
