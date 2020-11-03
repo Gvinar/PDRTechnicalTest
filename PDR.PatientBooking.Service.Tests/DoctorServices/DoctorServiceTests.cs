@@ -99,10 +99,9 @@ namespace PDR.PatientBooking.Service.Tests.DoctorServices
                 Gender = (int)request.Gender,
                 Email = request.Email,
                 DateOfBirth = request.DateOfBirth,
-                Orders = new List<Order>()
+                Orders = new List<Order>(),
+                Created = DateTime.UtcNow
             };
-
-            var utcNow = DateTime.UtcNow;
 
             //act
             _doctorService.AddDoctor(request);
@@ -112,8 +111,8 @@ namespace PDR.PatientBooking.Service.Tests.DoctorServices
                 .Should().ContainEquivalentOf(expected,
                 options => options
                     .Excluding(doctor => doctor.Id)
-                    .Excluding(doctor => doctor.Created))
-                .And.Match(doctors => doctors.All(doctor => doctor.Created > utcNow));
+                    .Using<DateTime>(c => c.Subject.Should().BeCloseTo(c.Expectation))
+                    .When(i => i.SelectedMemberPath.Equals(nameof(expected.Created))));
         }
 
         [Test]
