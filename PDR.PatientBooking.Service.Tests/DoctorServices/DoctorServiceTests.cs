@@ -99,15 +99,21 @@ namespace PDR.PatientBooking.Service.Tests.DoctorServices
                 Gender = (int)request.Gender,
                 Email = request.Email,
                 DateOfBirth = request.DateOfBirth,
-                Orders = new List<Order>(),
-                Created = DateTime.UtcNow
+                Orders = new List<Order>()
             };
+
+            var utcNow = DateTime.UtcNow;
 
             //act
             _doctorService.AddDoctor(request);
 
             //assert
-            _context.Doctor.Should().ContainEquivalentOf(expected, options => options.Excluding(doctor => doctor.Id));
+            _context.Doctor
+                .Should().ContainEquivalentOf(expected,
+                options => options
+                    .Excluding(doctor => doctor.Id)
+                    .Excluding(doctor => doctor.Created))
+                .And.Match(doctors => doctors.All(doctor => doctor.Created > utcNow));
         }
 
         [Test]
