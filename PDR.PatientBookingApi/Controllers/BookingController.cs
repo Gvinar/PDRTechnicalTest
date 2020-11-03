@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PDR.PatientBooking.Data;
-using PDR.PatientBooking.Data.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using PDR.PatientBooking.Service.OrderServices;
 using PDR.PatientBooking.Service.OrderServices.Requests;
 
@@ -23,32 +20,21 @@ namespace PDR.PatientBookingApi.Controllers
         }
 
         [HttpGet("patient/{identificationNumber}/next")]
-        public IActionResult GetPatientNextAppointnemtn(long identificationNumber)
+        public IActionResult GetPatientNextAppointment(long identificationNumber)
         {
-            var bockings = _context.Order.OrderBy(x => x.StartTime).ToList();
+            try
+            {
+                var nextAppointment = _orderService.GetPatientNextAppointment(identificationNumber);
+                if (nextAppointment is null)
+                {
+                    return NoContent();
+                }
 
-            if (bockings.Where(x => x.Patient.Id == identificationNumber).Count() == 0)
-            {
-                return StatusCode(502);
+                return Ok(nextAppointment);
             }
-            else
+            catch (Exception ex)
             {
-                var bookings2 = bockings.Where(x => x.PatientId == identificationNumber);
-                if (bookings2.Where(x => x.StartTime > DateTime.Now).Count() == 0)
-                {
-                    return StatusCode(502);
-                }
-                else
-                {
-                    var bookings3 = bookings2.Where(x => x.StartTime > DateTime.Now);
-                    return Ok(new
-                    {
-                        bookings3.First().Id,
-                        bookings3.First().DoctorId,
-                        bookings3.First().StartTime,
-                        bookings3.First().EndTime
-                    });
-                }
+                return StatusCode(500, ex);
             }
         }
 
@@ -68,30 +54,6 @@ namespace PDR.PatientBookingApi.Controllers
             {
                 return StatusCode(500, ex);
             }
-        }
-
-        private static MyOrderResult UpdateLatestBooking(List<Order> bookings2, int i)
-        {
-            MyOrderResult latestBooking;
-            latestBooking = new MyOrderResult();
-            latestBooking.Id = bookings2[i].Id;
-            latestBooking.DoctorId = bookings2[i].DoctorId;
-            latestBooking.StartTime = bookings2[i].StartTime;
-            latestBooking.EndTime = bookings2[i].EndTime;
-            latestBooking.PatientId = bookings2[i].PatientId;
-            latestBooking.SurgeryType = (int)bookings2[i].GetSurgeryType();
-
-            return latestBooking;
-        }
-
-        private class MyOrderResult
-        {
-            public Guid Id { get; set; }
-            public DateTime StartTime { get; set; }
-            public DateTime EndTime { get; set; }
-            public long PatientId { get; set; }
-            public long DoctorId { get; set; }
-            public int SurgeryType { get; set; }
         }
     }
 }
